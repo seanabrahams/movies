@@ -110,7 +110,7 @@ defmodule Movies do
       id: data["id"],
       tmdb_id: data["id"],
       title: data["title"],
-      image_url: "https://image.tmdb.org/t/p/w185/#{data["poster_path"]}",
+      image_url: get_image_url(data),
       description: data["overview"],
       year: get_year(data),
       genres: get_genres(data),
@@ -120,6 +120,7 @@ defmodule Movies do
   defp get_genres(data) do
     case data["genre_ids"] do
       nil -> []
+      "" -> []
       genre_ids ->
         Enum.map(genre_ids, fn(id) -> @tmdb_genres[id] end)
     end
@@ -127,10 +128,20 @@ defmodule Movies do
 
   defp get_year(data) do
     case data["release_date"] do
-      nil -> ""
+      nil -> nil
+      "" -> nil
       release_date ->
         [year, _, _] = String.split(release_date, "-")
         year
+    end
+  end
+
+  defp get_image_url(data) do
+    case data["poster_path"] do
+      nil -> nil
+      "" -> nil
+      poster_path ->
+        "https://image.tmdb.org/t/p/w185/#{data["poster_path"]}"
     end
   end
 end
