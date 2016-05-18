@@ -42,8 +42,9 @@ defmodule Movies do
   #     "total_results" => 1
   #   },
   # }
-  def search(query) do
-    get!("search/movie?query=#{query}").body
+  def search(query, params \\ %{}) do
+    params = Map.merge(params, %{"query" => query})
+    get!("search/movie?#{URI.encode_query(params)}").body
   end
 
   # %{
@@ -52,20 +53,20 @@ defmodule Movies do
   #   "total_pages" => 985,
   #   "total_results" => 19684
   # }
-  def popular do
-    get!("movie/popular?").body
+  def popular(params \\ %{}) do
+    get!("movie/popular?#{URI.encode_query(params)}").body
   end
 
-  def similar(movie) do
-    get!("movie/#{movie.tmdb_id}/similar?").body
+  def similar(movie, params \\ %{}) do
+    get!("movie/#{movie.tmdb_id}/similar?#{URI.encode_query(params)}").body
   end
 
-  def top do
-    get!("movie/top_rated?").body
+  def top(params \\ %{}) do
+    get!("movie/top_rated?#{URI.encode_query(params)}").body
   end
 
-  def upcoming do
-    get!("movie/upcoming?").body
+  def upcoming(params \\ %{}) do
+    get!("movie/upcoming?#{URI.encode_query(params)}").body
   end
 
   # %HTTPoison.Response{
@@ -96,8 +97,8 @@ defmodule Movies do
     "https://api.themoviedb.org/3/" <> url <> "&api_key=#{api_key}"
   end
 
-  defp to_struct(%{"results" => results}) do
-    convert(results)
+  defp to_struct(data) do
+    %{data | "results" => convert(data["results"])}
   end
 
   defp convert(data) when is_list(data) do
@@ -106,10 +107,12 @@ defmodule Movies do
 
   defp convert(data) do
     %Movies.Movie{
+      id: data["id"],
       tmdb_id: data["id"],
       title: data["title"],
       image_url: "https://image.tmdb.org/t/p/w185/#{data["poster_path"]}",
       description: data["overview"],
+      year: get_year(data),
       genres: get_genres(data),
     }
   end
@@ -119,6 +122,15 @@ defmodule Movies do
       nil -> []
       genre_ids ->
         Enum.map(genre_ids, fn(id) -> @tmdb_genres[id] end)
+    end
+  end
+
+  defp get_year(data) do
+    case data["release_date"] do
+      nil -> ""
+      release_date ->
+        [year, _, _] = String.split(release_date, "-")
+        year
     end
   end
 end

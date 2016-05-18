@@ -8,13 +8,11 @@ This library is open source (MIT License) and welcomes contributions!
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+1. Add movies to your list of dependencies in `mix.exs`:
 
-  1. Add movies to your list of dependencies in `mix.exs`:
-
-        def deps do
-          [{:movies, git: "https://github.com/seanabrahams/movies.git"}]
-        end
+      def deps do
+        [{:movies, git: "https://github.com/seanabrahams/movies.git"}]
+      end
 
 You will need an <a href="https://www.themoviedb.org/account">account</a> and <a href="https://www.themoviedb.org/account">API key</a> from themoviedb.org.
 

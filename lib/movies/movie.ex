@@ -15,5 +15,5 @@
 # "vote_count" => 1348
 # }
 defmodule Movies.Movie do
-  defstruct tmdb_id: 0, title: "", image_url: "", description: "", genres: []
+  defstruct id: "", tmdb_id: "", title: "", image_url: "", description: "", genres: [], year: ""
 end
