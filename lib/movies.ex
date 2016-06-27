@@ -26,49 +26,57 @@ defmodule Movies do
     37 => "Western"
   }
 
-  # def genres do
-  #   get!("genre/movie/list?").body
-  # end
-  #
-  # def images(movie) do
-  #   get!("movie/#{movie.tmdb_id}/images?").body
-  # end
-
-  # body: %{
-  #     "page" => 1,
-  #     "results" => [ ... Movies ... ]
-  #     ],
-  #     "total_pages" => 1,
-  #     "total_results" => 1
-  #   },
-  # }
-  def search(query, params \\ %{}) do
-    params = Map.merge(params, %{"query" => query})
-    get!("search/movie?#{URI.encode_query(params)}").body
+  def configuration do
+    get!("configuration?").body
   end
 
-  # %{
-  #   "page" => 1,
-  #   "results" => [ ... Movies ... ]
-  #   "total_pages" => 985,
-  #   "total_results" => 19684
-  # }
+  def find(tmdb_id: id) do
+    get!("movie/#{id}?append_to_response=trailers").body
+  end
+
+  def genres do
+    get!("genre/movie/list?").body
+  end
+
+  def images(movie) do
+    get!("movie/#{movie.tmdb_id}/images?").body
+  end
+
+  def latest(params \\ %{}) do
+    get!("movie/latest?#{URI.encode_query(params)}&append_to_response=videos").body
+  end
+
+  def now_playing(params \\ %{}) do
+    get!("movie/now_playing?#{URI.encode_query(params)}&append_to_response=videos").body
+  end
+
   def popular(params \\ %{}) do
-    get!("movie/popular?#{URI.encode_query(params)}").body
+    get!("movie/popular?#{URI.encode_query(params)}&append_to_response=videos").body
+  end
+
+  def search(query, params \\ %{}) do
+    params = Map.merge(params, %{"query" => query})
+    get!("search/movie?#{URI.encode_query(params)}&append_to_response=videos").body
   end
 
   def similar(movie, params \\ %{}) do
-    get!("movie/#{movie.tmdb_id}/similar?#{URI.encode_query(params)}").body
+    get!("movie/#{movie.tmdb_id}/similar?#{URI.encode_query(params)}&append_to_response=videos").body
   end
 
   def top(params \\ %{}) do
-    get!("movie/top_rated?#{URI.encode_query(params)}").body
+    get!("movie/top_rated?#{URI.encode_query(params)}&append_to_response=videos").body
   end
 
   def upcoming(params \\ %{}) do
-    get!("movie/upcoming?#{URI.encode_query(params)}").body
+    get!("movie/upcoming?#{URI.encode_query(params)}&append_to_response=videos").body
   end
 
+  def videos(movie) do
+    get!("movie/#{movie.tmdb_id}/videos?").body
+  end
+
+  # Example response:
+  #
   # %HTTPoison.Response{
   #   headers: [
   #     {"Access-Control-Allow-Origin", "*"},
@@ -84,7 +92,12 @@ defmodule Movies do
   #     {"Connection", "keep-alive"}
   #   ],
   #   status_code: 200,
-  #   body: ...
+  #   body: %{
+  #   "page" => 1,
+  #   "results" => [ ... Movies ... ]
+  #   "total_pages" => 985,
+  #   "total_results" => 19684
+  #   }
   # }
   defp process_response_body(body) do
     body
@@ -98,50 +111,27 @@ defmodule Movies do
   end
 
   defp to_struct(data) do
-    %{data | "results" => convert(data["results"])}
+    case data do
+      %{"results" => results} -> convert(data["results"])
+      _ -> convert(data)
+    end
   end
 
   defp convert(data) when is_list(data) do
     Enum.map(data, &(convert(&1)))
   end
 
+  # TODO: Re-engineer this so that it will accurately process each type of
+  # result. Relying on pattern matching on arbitrary fields such as type and
+  # title will not be sufficient.
   defp convert(data) do
-    %Movies.Movie{
-      id: data["id"],
-      tmdb_id: data["id"],
-      title: data["title"],
-      image_url: get_image_url(data),
-      description: data["overview"],
-      year: get_year(data),
-      genres: get_genres(data),
-    }
-  end
-
-  defp get_genres(data) do
-    case data["genre_ids"] do
-      nil -> []
-      "" -> []
-      genre_ids ->
-        Enum.map(genre_ids, fn(id) -> @tmdb_genres[id] end)
-    end
-  end
-
-  defp get_year(data) do
-    case data["release_date"] do
-      nil -> nil
-      "" -> nil
-      release_date ->
-        [year, _, _] = String.split(release_date, "-")
-        year
-    end
-  end
-
-  defp get_image_url(data) do
-    case data["poster_path"] do
-      nil -> nil
-      "" -> nil
-      poster_path ->
-        "https://image.tmdb.org/t/p/w185/#{data["poster_path"]}"
+    case data do
+      %{"type" => type} ->
+        Movies.Trailer.convert(data)
+      %{"title" => title} ->
+        Movies.Movie.convert(data)
+      _ ->
+        nil
     end
   end
 end
