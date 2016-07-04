@@ -112,7 +112,7 @@ defmodule Movies do
 
   defp to_struct(data) do
     case data do
-      %{"results" => results} -> convert(data["results"])
+      %{"results" => results} -> Map.put(data, "results", convert(data["results"]))
       _ -> convert(data)
     end
   end
